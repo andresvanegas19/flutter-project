@@ -1,0 +1,1 @@
+resources package will hold the repository class and the network call implemented class.
