@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import '../services/covid_service.dart';
+import '../models/global_summary.dart';
+import 'global_statistics.dart';
+import 'global_loading.dart';
+
+CovidServices covidServices = CovidServices();
 
 class Global extends StatefulWidget {
   @override
@@ -6,10 +12,73 @@ class Global extends StatefulWidget {
 }
 
 class _GlobalState extends State<Global> {
+  Future<GlobalSummaryModel> summary;
+
+  @override
+  void initState() {
+    super.initState();
+    summary = covidServices.getGlobalSummary();
+  }
+
+  void resolve(Future str) async {
+    GlobalSummaryModel sum = await str;
+    print("debug");
+    print(sum.newRecovered);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text("Global"),
+    // resolve(summary);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Text(
+                "Global coronavirus cases",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => setState(() {
+                  summary = covidServices.getGlobalSummary();
+                }),
+                child: Icon(
+                  Icons.refresh,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+        FutureBuilder(
+          future: summary,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(
+                child: Text("Error"),
+              );
+            }
+
+            switch (snapshot.connectionState) {
+              case ConnectionState.waiting:
+                return GlobalLoading();
+              default:
+                return !snapshot.hasData
+                    ? Center(
+                        child: Text("Empty"),
+                      )
+                    : GlobalStatistics(snapshot.data);
+            }
+          },
+        )
+      ],
     );
   }
 }

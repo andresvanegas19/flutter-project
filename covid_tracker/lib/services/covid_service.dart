@@ -9,6 +9,9 @@ class CovidServices {
   Future<GlobalSummaryModel> getGlobalSummary() async {
     final data = await http.Client().get("https://api.covid19api.com/summary");
     if (data.statusCode != 200) throw Exception();
+    // var x = json.decode(data.body);
+    // print(x);
+    // print(x['Global']);
 
     GlobalSummaryModel summary = new GlobalSummaryModel.fromJson(
       json.decode(
