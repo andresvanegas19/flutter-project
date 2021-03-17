@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import '../services/covid_service.dart';
-import '../models/country_summary.dart';
-import '../models/contry.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
-CovidServices covidServices = CovidServices();
+import 'country_statistics.dart';
+import 'country_loading.dart';
+
+import '../services/covid_service.dart';
+
+import '../models/country_summary.dart';
+import '../models/contry.dart';
+
+CovidServices covidService = CovidServices();
 
 class Country extends StatefulWidget {
   @override
@@ -12,28 +17,28 @@ class Country extends StatefulWidget {
 }
 
 class _CountryState extends State<Country> {
-  TextEditingController _typeAheadController = TextEditingController();
+  final TextEditingController _typeAheadController = TextEditingController();
   Future<List<CountryModel>> countryList;
   Future<List<CountrySummaryModel>> summaryList;
 
   @override
-  void initState() {
+  initState() {
     super.initState();
-    countryList = covidServices.getCountryList();
-    summaryList = covidServices.getCountrySummary("Qatar");
 
-    this._typeAheadController.text = "Qatar";
+    countryList = covidService.getCountryList();
+
+    this._typeAheadController.text = "United States of America";
+    summaryList = covidService.getCountrySummary("united-states");
   }
 
-  List<String> _getSuggestion(List<CountryModel> list, String query) {
-    List<String> matches = [];
+  List<String> _getSuggestions(List<CountryModel> list, String query) {
+    List<String> matches = List();
 
     for (var item in list) {
       matches.add(item.country);
     }
 
     matches.retainWhere((s) => s.toLowerCase().contains(query.toLowerCase()));
-
     return matches;
   }
 
@@ -42,23 +47,25 @@ class _CountryState extends State<Country> {
     return FutureBuilder(
       future: countryList,
       builder: (context, snapshot) {
-        if (snapshot.hasError) return Center(child: Text("Ocurr an erro"));
-
+        if (snapshot.hasError)
+          return Center(
+            child: Text("Error"),
+          );
         switch (snapshot.connectionState) {
           case ConnectionState.waiting:
-            return Center(child: Text("loading"));
+            return CountryLoading(inputTextLoading: true);
           default:
             return !snapshot.hasData
-                ? Center(child: Text("Empty data not found"))
+                ? Center(
+                    child: Text("Empty"),
+                  )
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 6,
-                        ),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                         child: Text(
                           "Type the country name",
                           style: TextStyle(
@@ -68,14 +75,14 @@ class _CountryState extends State<Country> {
                           ),
                         ),
                       ),
-                      TypeAheadField(
+                      TypeAheadFormField(
                         textFieldConfiguration: TextFieldConfiguration(
-                          controller: _typeAheadController,
+                          controller: this._typeAheadController,
                           decoration: InputDecoration(
-                            hintText: "Type the country name",
+                            hintText: 'Type here country name',
                             hintStyle: TextStyle(fontSize: 16),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(15),
                               borderSide: BorderSide(
                                 width: 0,
                                 style: BorderStyle.none,
@@ -85,7 +92,7 @@ class _CountryState extends State<Country> {
                             fillColor: Colors.grey[200],
                             contentPadding: EdgeInsets.all(20),
                             prefixIcon: Padding(
-                              padding: EdgeInsets.only(left: 24, right: 16),
+                              padding: EdgeInsets.only(left: 24.0, right: 16.0),
                               child: Icon(
                                 Icons.search,
                                 color: Colors.black,
@@ -94,18 +101,22 @@ class _CountryState extends State<Country> {
                             ),
                           ),
                         ),
-                        suggestionsCallback: (pattern) =>
-                            _getSuggestion(snapshot.data, pattern),
+                        suggestionsCallback: (pattern) {
+                          return _getSuggestions(snapshot.data, pattern);
+                        },
                         itemBuilder: (context, suggestion) {
-                          return ListTile(title: Text(suggestion));
+                          return ListTile(
+                            title: Text(suggestion),
+                          );
                         },
                         transitionBuilder:
-                            (context, suggestionBox, controller) =>
-                                suggestionBox,
+                            (context, suggestionsBox, controller) {
+                          return suggestionsBox;
+                        },
                         onSuggestionSelected: (suggestion) {
                           this._typeAheadController.text = suggestion;
                           setState(() {
-                            summaryList = covidServices.getCountrySummary(
+                            summaryList = covidService.getCountrySummary(
                                 snapshot.data
                                     .firstWhere((element) =>
                                         element.country == suggestion)
@@ -113,22 +124,24 @@ class _CountryState extends State<Country> {
                           });
                         },
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(
+                        height: 8,
+                      ),
                       FutureBuilder(
                         future: summaryList,
                         builder: (context, snapshot) {
                           if (snapshot.hasError)
-                            return Center(child: Text("Error"));
+                            return Center(
+                              child: Text("Error"),
+                            );
                           switch (snapshot.connectionState) {
                             case ConnectionState.waiting:
-                              return Center(child: Text("loading"));
+                              return CountryLoading(inputTextLoading: false);
                             default:
                               return !snapshot.hasData
-                                  ? Center(child: Text("empty"))
-                                  : Center(child: Text("Has data"));
+                                  ? Center(child: Text("Empty"))
+                                  : ContryStatistics(snapshot.data);
                           }
-
-                          // }
                         },
                       ),
                     ],
